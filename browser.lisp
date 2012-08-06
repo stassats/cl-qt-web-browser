@@ -14,6 +14,8 @@
 
 ;;;
 
+(defvar *data-directory* "/tmp/cl-qt-browser/")
+
 (defclass browser ()
   ((tab-bar :accessor tab-bar)
    (tabs :accessor tabs :initform nil)
@@ -66,6 +68,10 @@
     (connect tab-bar "tabCloseRequested(int)"
              instance "closeTab(int)")
 
+    (connect (#_new QShortcut (#_new QKeySequence "Ctrl+t") instance)
+             "activated()"
+             instance "newTab()")
+    (set-settings)
     (#_setLayout instance layout)
 
     (with-layout (hbox "QHBoxLayout" layout)
@@ -111,16 +117,15 @@
   (if parent
       (new instance parent)
       (new instance))
-  (let ((layout (#_new QVBoxLayout))
-        (web-view (make-instance 'q-web-view :parent instance))
-        (toolbar (#_new QToolBar))
-        (address (#_new QLineEdit))
-        (go (#_new QToolButton))
-        (reload (#_new QToolButton))
-        (back (#_new QToolButton))
-        (forward (#_new QToolButton))
-        (progress (#_new QProgressBar)))
-    (set-settings web-view)
+  (let* ((layout (#_new QVBoxLayout))
+         (web-view (make-instance 'q-web-view :parent instance))
+         (toolbar (#_new QToolBar))
+         (address (#_new QLineEdit))
+         (go (#_new QToolButton))
+         (reload (#_new QToolButton))
+         (back (#_new QToolButton))
+         (forward (#_new QToolButton))
+         (progress (#_new QProgressBar)))
     (setf (web-view instance) web-view
           (address-bar instance) address)
 
@@ -134,8 +139,8 @@
     (connect back "clicked()"
              web-view "back()")
 
-    (connect web-view "loadProgress(int)"
-             progress "setValue(int)")
+    ;; (connect web-view "loadProgress(int)"
+    ;;          progress "setValue(int)")
     (connect web-view "loadStarted()"
              progress "show()")
 
@@ -149,7 +154,6 @@
 
     (connect web-view "iconChanged()"
              instance "updateIcon()")
-
     (#_setLayout instance layout)
     (add-widgets layout toolbar web-view progress)
     (add-widgets toolbar back forward reload address go)
@@ -164,14 +168,20 @@
     (#_setMenu forward (#_new QMenu))
 
     (#_hide progress)
-    (#_setFocus address)))
+    (#_setFocus address)
+    (connect (#_new QShortcut (#_new QKeySequence "Ctrl+l") instance)
+             "activated()"
+             (lambda ()
+               (#_selectAll address)
+               (#_setFocus address)))))
 
-(defun set-settings (webpage)
-  (let ((settings (#_settings webpage)))
+(defun set-settings ()
+  (let ((settings (#_QWebSettings::globalSettings)))
     (#_setAttribute settings
                     (#_QWebSettings::PluginsEnabled) t)
-    (#_setIconDatabasePath settings
-                           (ensure-directories-exist "/tmp/cl-qt-browser/"))))
+    (#_enablePersistentStorage settings (ensure-directories-exist *data-directory*))
+    (#_setAttribute settings
+                    (#_QWebSettings::DeveloperExtrasEnabled) t)))
 
 (defun append-http (url)
   (let ((url (string-trim '(#\Space) url)))
@@ -250,6 +260,7 @@
 
 (defun web ()
   (ensure-smoke :qtwebkit)
+  ;(ensure-smoke :qtnetwork)
   (setf *qapp* (make-qapplication))
   (let ((window (make-instance 'browser)))
     (#_show window)
