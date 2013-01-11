@@ -256,16 +256,14 @@
   (ensure-smoke :qtwebkit)
   (web))
 
-(defvar *qapp*)
+(defvar *qapp* nil)
 
 (defun web ()
-  (ensure-smoke :qtwebkit)
-  ;(ensure-smoke :qtnetwork)
-  (setf *qapp* (make-qapplication))
+  (unless *qapp*
+    (ensure-smoke :qtwebkit)
+    (setf *qapp* (make-qapplication)))
   (let ((window (make-instance 'browser)))
     (#_show window)
     (unwind-protect
-         (#+sbcl sb-int:with-float-traps-masked #+sbcl (:invalid :divide-by-zero)
-                 #-sbcl progn
-                 (#_exec *qapp*))
+         (#_exec *qapp*)
       (#_hide window))))
