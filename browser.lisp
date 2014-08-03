@@ -86,8 +86,7 @@
 (defclass q-web-view ()
   ()
   (:metaclass qt-class)
-  (:qt-superclass "QWebView")
-  (:override ("createWindow" create-tab)))
+  (:qt-superclass "QWebView"))
 
 (defclass browser-tab ()
   ((web-view :accessor web-view
